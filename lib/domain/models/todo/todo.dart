@@ -1,22 +1,17 @@
-import 'package:json_annotation/json_annotation.dart';
-import 'package:mobx/mobx.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
+part 'todo.freezed.dart';
 part 'todo.g.dart';
 
-@JsonSerializable()
-class Todo extends _Todo with _$Todo {
-  Todo(String description) : super(description);
+@freezed
+class Todo with _$Todo {
+  @HiveType(typeId: 0)
+  const factory Todo({
+    @HiveField(0) required final String id,
+    @HiveField(1) required final String description,
+    @HiveField(2) required final bool done,
+  }) = _Todo;
 
-  factory Todo.fromJson(Map<String, dynamic> json) => _$TodoFromJson(json);
-  Map<String, dynamic> toJson() => _$TodoToJson(this);
-}
-
-abstract class _Todo with Store {
-  _Todo(this.description);
-
-  @observable
-  String description = '';
-
-  @observable
-  bool done = false;
+  factory Todo.fromJson(Map<String, Object?> json) => _$TodoFromJson(json);
 }

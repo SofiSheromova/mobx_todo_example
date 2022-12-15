@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:mobx_todo/domain/models/filter/visibility_filter.dart';
 import 'package:mobx_todo/presentation/ui/screens/todo/store/todo_list_store.dart';
 import 'package:provider/provider.dart';
 
@@ -15,6 +16,7 @@ class TodosActionBar extends StatelessWidget {
         Observer(
           builder: (_) {
             final selections = VisibilityFilter.values.map((f) => f == list.filter).toList(growable: false);
+
             return Column(
               children: <Widget>[
                 Padding(

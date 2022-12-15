@@ -1,41 +1,43 @@
-import 'package:json_annotation/json_annotation.dart';
 import 'package:mobx/mobx.dart';
-import 'package:mobx_todo/utils/observable_todo_list_converter.dart';
-import 'package:mobx_todo/domain/models/todo/todo.dart';
+import 'package:mobx_todo/domain/models/filter/visibility_filter.dart';
+import 'package:mobx_todo/domain/repository/todos_repository.dart';
+import 'package:mobx_todo/domain/models/operation/operation_status.dart';
+import 'package:mobx_todo/presentation/ui/screens/todo/store/todo_store.dart';
 
 part 'todo_list_store.g.dart';
 
-enum VisibilityFilter { all, pending, completed }
-
-@JsonSerializable()
 class TodoListStore extends _TodoListStore with _$TodoListStore {
-  TodoListStore();
-
-  factory TodoListStore.fromJson(Map<String, dynamic> json) => _$TodoListStoreFromJson(json);
-
-  Map<String, dynamic> toJson() => _$TodoListStoreToJson(this);
+  TodoListStore(super.todosRepository);
 }
 
 abstract class _TodoListStore with Store {
-  @observable
-  @ObservableTodoListConverter()
-  ObservableList<Todo> todos = ObservableList<Todo>();
+  final TodosRepository _todosRepository;
 
   @observable
-  @JsonKey(defaultValue: VisibilityFilter.all)
+  OperationStatus<List<TodoStore>> todosLoading = const OperationStatus.loading();
+
+  @observable
+  ObservableList<TodoStore> todos = ObservableList<TodoStore>();
+
+  @observable
+  OperationStatus<void> todosSaving = const OperationStatus.data(null);
+
+  @observable
   VisibilityFilter filter = VisibilityFilter.all;
 
-  @computed
-  ObservableList<Todo> get pendingTodos => ObservableList.of(todos.where((todo) => todo.done != true));
+  _TodoListStore(this._todosRepository) {
+    _fetchTodos();
+  }
 
   @computed
-  ObservableList<Todo> get completedTodos => ObservableList.of(todos.where((todo) => todo.done == true));
-
-  @computed
-  bool get hasCompletedTodos => completedTodos.isNotEmpty;
-
+  ObservableList<TodoStore> get pendingTodos => ObservableList.of(todos.where((todo) => todo.done != true));
   @computed
   bool get hasPendingTodos => pendingTodos.isNotEmpty;
+
+  @computed
+  ObservableList<TodoStore> get completedTodos => ObservableList.of(todos.where((todo) => todo.done == true));
+  @computed
+  bool get hasCompletedTodos => completedTodos.isNotEmpty;
 
   @computed
   String get itemsDescription {
@@ -48,8 +50,7 @@ abstract class _TodoListStore with Store {
   }
 
   @computed
-  @JsonKey(ignore: true)
-  ObservableList<Todo> get visibleTodos {
+  ObservableList<TodoStore> get visibleTodos {
     switch (filter) {
       case VisibilityFilter.pending:
         return pendingTodos;
@@ -68,12 +69,12 @@ abstract class _TodoListStore with Store {
 
   @action
   void addTodo(String description) {
-    final todo = Todo(description);
+    final todo = TodoStore(description);
     todos.add(todo);
   }
 
   @action
-  void removeTodo(Todo todo) {
+  void removeTodo(TodoStore todo) {
     todos.removeWhere((x) => x == todo);
   }
 
@@ -85,7 +86,33 @@ abstract class _TodoListStore with Store {
   @action
   void markAllAsCompleted() {
     for (final todo in todos) {
-      todo.done = true;
+      todo.markAsCompleted();
+    }
+  }
+
+  @action
+  Future<void> _fetchTodos() async {
+    todosLoading = const OperationStatus.loading();
+
+    try {
+      final fetchedTodos = await _todosRepository.getTodosData();
+      todos.addAll(fetchedTodos.map(TodoStore.fromModel));
+
+      todosLoading = OperationStatus.data(todos);
+    } catch (err) {
+      todosLoading = const OperationStatus.error();
+    }
+  }
+
+  @action
+  Future<void> saveTodos() async {
+    todosSaving = const OperationStatus.loading();
+
+    try {
+      await _todosRepository.updateTodosData(todos.map((todo) => todo.model).toList());
+      todosSaving = const OperationStatus.data(null);
+    } catch (err) {
+      todosSaving = const OperationStatus.error();
     }
   }
 }

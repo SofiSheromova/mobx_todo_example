@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:mobx_todo/presentation/ui/screens/todo/dependencies/todo_example_dependencies.dart';
 import 'package:mobx_todo/presentation/ui/screens/todo/todo_example_screen.dart';
+import 'package:mobx_todo/provider/app_providers.dart';
+import 'package:mobx_todo/utils/hive_utils.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await HiveUtils.initHive();
 
-  runApp(const MyApp());
+  runApp(const AppProviders(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -19,7 +23,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.light,
       ),
       routes: {
-        '/': (context) => const TodoExampleScreen(),
+        '/': (context) => const TodoExampleDependencies(child: TodoExampleScreen()),
       },
     );
   }
